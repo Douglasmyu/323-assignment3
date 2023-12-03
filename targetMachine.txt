@@ -1,0 +1,27 @@
+I1) PUSHI {Integer Value} Pushes the {Integer Value} onto the Top of the Stack (TOS)
+I2) PUSHM {ML - Memory Location} Pushes the value stored at {ML} onto TOS
+I3) POPM {ML} Pops the value from the top of the stack and stores it at {ML}
+I4) STDOUT Pops the value from TOS and outputs it to the standard output
+I5) STDIN Get the value from the standard input and place in onto the TOS
+I6) ADD Pop the first two items from stack and push the sum onto the TOS
+I7) SUB Pop the first two items from stack and push the difference onto the TOS
+( Second item - First item)
+I8) MUL Pop the first two items from stack and push the product onto the TOS
+I9) DIV Pop the first two items from stack and push the result onto the TOS
+( Second item / First item and ignore the remainder)
+I10) GRT Pops two items from the stack and pushes 1 onto TOS if second item is
+larger otherwise push 0
+I11) LES Pops two items from the stack and pushes 1 onto TOS if the second item is
+smaller than first item otherwise push 0
+I12) EQU Pops two items from the stack and pushes 1 onto TOS if they are equal
+otherwise push 0
+I13) NEQ Pops two items from the stack and pushes 1 onto TOS if they are not equal
+otherwise push 0
+I14) GEQ Pops two items from the stack and pushes 1 onto TOS if second item is
+larger or equal otherwise push 0
+115) LEQ Pops two items from the stack and pushes 1 onto TOS if second item is
+Less or equal otherwise push 0
+I16) JUMPZ {IL - Instruction Location} Pop the stack and if the value is 0 then jump to
+{IL}
+I17) JUMP {IL} Unconditionally jump to {IL}
+I18) LABEL Empty Instruction; Provides the instruction location to jump to.
