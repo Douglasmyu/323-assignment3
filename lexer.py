@@ -1,8 +1,8 @@
-
 KEYWORDS = {'integer', 'function', 'bool', 'real', 'if', 'endif', 
             'else', 'ret', 'put', 'get', 'while', 'true', 'false'}
 SEPARATORS = {'(', ')', '{', '}', ',', ';', '#'}
-OPERATORS = {'=', '==', '!=', '>', '<', '<=', '>=', '+', '-', '*', '/'}
+OPERATORS = {'=', '==', '!=', '>', '<', '<=', '=>', '+', '-', '*', '/'}
+MULT_OPS = {'<=', '=>'}
 DELIMITERS = {' ', '\n', '(', ')', '{', '}', ',', ';', '#'}
 
 # DFA representation for identifiers returns true if is an identifier
@@ -124,63 +124,63 @@ def lexer(lexeme):
 
 
 
-testFiles = ["testCase1.txt", "testCase2.txt", "testCase3.txt"]
-outputFiles = ["output1.txt", "output2.txt", "output3.txt" ]
-for i in range(3):
-    with open(testFiles[i], 'a') as f:
-        f.write(' ')
-# reads through all of the test files and outputs them into their respective output files
-for i in range(3):
-    with open(testFiles[i], 'r') as f, open(outputFiles[i], 'w') as out:
-        # string formatting and title creation
-        string_format = "{:<15} {}"
-        underline = '-' * 22
-        out.write(string_format.format("TOKEN", "LEXEME") + '\n')
-        out.write(underline + '\n')
-        isComment = False
-        # read in initial char
-        ch = f.read(1)
+# testFiles = ["testCase1.txt", "testCase2.txt", "testCase3.txt"]
+# outputFiles = ["output1.txt", "output2.txt", "output3.txt" ]
+# for i in range(3):
+#     with open(testFiles[i], 'a') as f:
+#         f.write(' ')
+# # reads through all of the test files and outputs them into their respective output files
+# for i in range(3):
+#     with open(testFiles[i], 'r') as f, open(outputFiles[i], 'w') as out:
+#         # string formatting and title creation
+#         string_format = "{:<15} {}"
+#         underline = '-' * 22
+#         out.write(string_format.format("TOKEN", "LEXEME") + '\n')
+#         out.write(underline + '\n')
+#         isComment = False
+#         # read in initial char
+#         ch = f.read(1)
 
-        # while there is a char to read
-        while ch:
-            # initialize empty buffer
-            buffer = ''
+#         # while there is a char to read
+#         while ch:
+#             # initialize empty buffer
+#             buffer = ''
             
-            # handling comments
-            if ch == '[':
-                nextCh = f.read(1)
-                if nextCh == '*':
-                    isComment = True
-                else:
-                    buffer += ch
-                    ch = nextCh 
-                    continue
-            elif isComment and ch == '*':
-                nextCh = f.read(1)
-                if nextCh == ']':
-                    isComment = False
-                    ch = f.read(1)
-                    continue
-            if isComment:
-                ch = f.read(1)
-                continue
+#             # handling comments
+#             if ch == '[':
+#                 nextCh = f.read(1)
+#                 if nextCh == '*':
+#                     isComment = True
+#                 else:
+#                     buffer += ch
+#                     ch = nextCh 
+#                     continue
+#             elif isComment and ch == '*':
+#                 nextCh = f.read(1)
+#                 if nextCh == ']':
+#                     isComment = False
+#                     ch = f.read(1)
+#                     continue
+#             if isComment:
+#                 ch = f.read(1)
+#                 continue
                 
-            # read in ch until hitting delim
-            while ch not in DELIMITERS:
-                buffer += ch
-                ch = f.read(1)
-            # if there is something in buffer call lexer for token and print
-            if buffer:
-                token = lexer(buffer)[0]
-                lexeme = lexer(buffer)[1]
-                if token:
-                    out.write(string_format.format(token, lexeme) + '\n')
-            # if current char is a separator print separator
-            if ch in SEPARATORS:
-                token = lexer(ch)[0]
-                if token:
-                    out.write(string_format.format(token, ch) + '\n')
+#             # read in ch until hitting delim
+#             while ch not in DELIMITERS:
+#                 buffer += ch
+#                 ch = f.read(1)
+#             # if there is something in buffer call lexer for token and print
+#             if buffer:
+#                 token = lexer(buffer)[0]
+#                 lexeme = lexer(buffer)[1]
+#                 if token:
+#                     out.write(string_format.format(token, lexeme) + '\n')
+#             # if current char is a separator print separator
+#             if ch in SEPARATORS:
+#                 token = lexer(ch)[0]
+#                 if token:
+#                     out.write(string_format.format(token, ch) + '\n')
                     
-            ch = f.read(1)
+#             ch = f.read(1)
 
 

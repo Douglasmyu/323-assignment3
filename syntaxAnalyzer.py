@@ -1,4 +1,5 @@
 from lexer import *
+import sys
 
 # basically runs through the lexer program from A1 but shoves the tokens and lexemes in a list that the parser will call
 def getTokens(filename, tokensList):
@@ -27,7 +28,7 @@ def getTokens(filename, tokensList):
                 continue
             
             # read in ch until hitting delim
-            while ch not in DELIMITERS:
+            while ch not in DELIMITERS and ch not in OPERATORS:
                 buffer += ch
                 ch = f.read(1)
             # if there is something in buffer call lexer for token and print
@@ -41,497 +42,478 @@ def getTokens(filename, tokensList):
                 token = lexer(ch)[0]
                 if token:
                     tokensList.append([token, ch])
-                    
+            if ch in OPERATORS:
+                next = f.read(1)
+                if ch + next in MULT_OPS:
+                    tokensList.append(['OPERATOR', ch + next])
+                    ch = f.read(1) 
+                    token = lexer(ch)[0]
+                else:
+                    f.seek(f.tell() - 1)
+                    tokensList.append(['OPERATOR', ch])
             ch = f.read(1)
 
-# compares lexeme with expected and progresses token index
+def advance():
+    global token_index
+    global tokens_list
+    if tokens_list[token_index] is not None:
+        token_index += 1
+
+# compares lexeme with expected and progresses token index and prints the token processed
 def is_token(expected):
     global token_index
     global tokens_list
     # compares current lexeme with expected 
     if tokens_list[token_index][1] == expected:
-        token_index += 1
+        print(f'Matched Token: {tokens_list[token_index]}, Lexeme: {tokens_list[token_index][1]}')
+        advance()
         return True
-    return False
+    else:
+        return False
                
 # error handling needs more work
-def syntax_error():
+def syntax_error(expected):
     global token_index
     global token_list
     currentToken = tokens_list[token_index][0]
     currentLexeme = tokens_list[token_index][1]
-    print(f'Current Token: {currentToken}')
-    print(f'Current Lexeme: {currentLexeme}')
-    return False
+    error_message = {
+        f"SYNTAX ERROR "
+        f"Expected: {expected}"
+        f"Found Lexeme: {currentLexeme} "
+        f"Found Token: {currentToken} "
+        f"Current Index: {token_index} "
+    }
+    raise SyntaxError(error_message)
 
 
 #production rules
 def Rat23F():
     print('<Rat23F> --> <Opt Function Definitions> # <Opt Declaration List> <Statement List> #')
-    if Opt_Function_Definitions():
-        if is_token('#'):
-            if Opt_Declaration_List():
-                if Statement_List():
-                    if is_token('#'):
-                        print(lexer('#'))
-                        print(lexer('#'))
-                        return True
-    return False
-
+    Opt_Function_Definitions()
+    if not is_token('#'):
+        syntax_error('#')
+    Opt_Declaration_List()
+    Statement_List()
+    if not is_token('#'):
+        syntax_error('#')   
+    return True
+    
 def Opt_Function_Definitions():
-    if Function_Definitions():
+    # looking to see if the current position could start <Function>
+    if tokens_list[token_index][1] == 'function':
         print('<Opt Function Definitions> --> <Function Definitions>')
-        return True
-    elif Empty():
-        print('<Opt Function Definitions> --> <Empty>')
-        return True
+        Function_Definitions()
+    # if <Function> could not be started then do nothing
     else:
-        return False
+        print('<Opt Function Definitions> --> <Empty>')
+        Empty()
 
 def Function_Definitions():
-    if Function():
-        if Function_Definitions():
-            print('<Function Definitions> --> <Function> <Function Definitions>')
-            return True
-        else:
-            print('<Function Definitions> --> <Function>')
-            return True
-    else:
-        return False
-    
+    print('<Function Definitions> --> <Function> <Function Definitions> | <Function Definitions> --> <Function>')
+    Function()
+    if tokens_list[token_index][1] == 'function':
+        # looking to see if the current position could start <Function>
+        Function_Definitions()
 
 def Function():
-    if is_token('function'):
-        if Identifier():
-            if is_token('('):
-                if Opt_Parameter_List():
-                    if is_token(')'):
-                        if Opt_Declaration_List():
-                            if Body():
-                                print('<Function> --> function <Identifier> ( <Opt Parameter List> ) <Opt Declaration List> <Body>')
-                                print(lexer('('))
-                                print(lexer(')'))
-                                return True
-    else:
-        return False
+    global token_index
+    global tokens_list
+    print('<Function> --> function <Identifier> ( <Opt Parameter List> ) <Opt Declaration List> <Body>')
+    if not is_token('function'):
+        syntax_error('function')
+    Identifier()
+    if not is_token('('):
+        syntax_error('(')
+    Opt_Parameter_List()
+    if not is_token(')'):
+        syntax_error(')')
+    Opt_Declaration_List()
+    Body()
             
 def Opt_Parameter_List():
-    if Parameter_List():
+    # checks the current token to see if <Parameter> can run
+    nextToken = tokens_list[token_index + 1][1]
+    # checking if current token can run <IDs>
+    if isID(tokens_list[token_index][1]):
         print('<Opt Parameter List> --> <Parameter List>')
-        return True
-    elif Empty():
-        print('<Opt Parameter List> --> <Empty>')
-        return True
+        # checks if next token can run <Qualifier> therby confirming <Parameter> can run
+        if nextToken == 'integer' or nextToken == 'bool' or nextToken == 'real':
+            Parameter_List()
+    # else do nothing
     else:
-        return False
+        print('<Opt Parameter List> --> <Empty>')
+        Empty()
 
 def Parameter_List():
-    if Parameter():
-        if is_token(','):
-            print('<Parameter List> --> <Parameter> , <Parameter List>')
-            print(lexer(','))
-            if Parameter_List():
-                return True
-        else:
-            print('<Parameter List> --> <Parameter>')
-            return True
-    else:
-        return False
+    global tokens_list
+    global token_index
+    print('<Parameter List> --> <Parameter> , <Parameter List> | <Parameter>')
+    # parses Parameter() regardless
+    Parameter()
+    # checks the next two tokens to see if Parameter could be run
+    if tokens_list[token_index][1] == ',':
+        if isID(tokens_list[token_index + 1][1]):
+            is_token(',')
+            Parameter_List()
     
 def Parameter():
-    if IDs():
-        if Qualifier():
-            print('<Parameter> --> <IDs > <Qualifier>')
-            return True
-    else:
-        return False    
+    print('<Parameter> --> <IDs> <Qualifier>')
+    IDs()
+    Qualifier()
 
-   
 def Qualifier():
-    if is_token('integer'):
+    global token_index
+    global tokens_list
+    if tokens_list[token_index][1] == 'integer':
         print('<Qualifier> --> integer')
-        print(lexer('integer'))
-        return True
-    elif is_token('bool'):
+        is_token('integer') 
+    elif tokens_list[token_index][1] == 'bool':
         print('<Qualifier> --> bool')
-        print(lexer('bool'))
-        return True
-    elif is_token('real'):
+        is_token('bool')
+    elif tokens_list[token_index][1] == 'real':
         print('<Qualifier> --> real')
-        print(lexer('real'))
-        return True
+        is_token('real')
     else:
-        return False
+        syntax_error('integer, bool, real')
     
 def Body():
-    if is_token('{'):
-        if Statement_List():
-            if is_token('}'):
-                print('<Body> --> { <Statement List> }')
-                print(lexer('{'))
-                print(lexer('}'))
-                return True
-    return False
+    print('<Body> --> { <Statement List> }')
+    if not is_token('{'):
+        syntax_error('{')
+    Statement_List()
+    if not is_token('}'):
+        syntax_error('}')
 
 def Opt_Declaration_List():
-    if Declaration_List():
+    global tokens_list
+    global token_index
+    # checks if token is qualifier which means Decaration List can be called
+    if tokens_list[token_index][1] == 'integer' or tokens_list[token_index][1] == 'bool' or tokens_list[token_index][1] == 'real':
         print('<Opt Declaration List> --> <Declaration List>')
-        return True
-    elif Empty():
+        Declaration_List()
+    else:
         print('<Opt Declaration List> --> <Empty>')
-        return True
-    else: 
-        return False
+        Empty()
     
 def Declaration_List():
-    if Declaration():
-        if is_token(';'):
-            if Declaration_List():
-                print('<Declaration List> --> <Declaration> ; <Declaration List>')
-                print(lexer(';'))
-                return True
-            else:
-                print('<Declaration List> --> <Declaration> ;')
-                print(lexer(';'))
-                return True
-    else:
-        return False
-    
+    global tokens_list
+    global token_index
+    print('<Declaration List> --> <Declaration> ; <Declaration List> | <Declaration> ;')
+    Declaration()
+    if not is_token(';'):
+        syntax_error(';')
+    # check to see if declaration can be called again
+    if tokens_list[token_index][1] == 'integer' or tokens_list[token_index][1] == 'bool' or tokens_list[token_index][1] == 'real':
+        Declaration_List()
+
 def Declaration():
-    if Qualifier():
-        if IDs():
-            print('<Declaration> --> <Qualifier > <IDs>')
-            return True
-    else:
-        return False
+    print('<Declaration> --> <Qualifier> <IDs>')
+    Qualifier()
+    IDs()
     
 def IDs():
-    if Identifier():
-        if is_token(','):
-            if IDs():
-                print('<IDs> --> <Identifier>, <IDs>')
-                print(lexer(','))
-                return True
-        else:
-            print('<IDs> --> <Identifier>')
-            return True
-    else:
-        return False
-        
+    global token_index
+    global tokens_list
+    print('<IDs> --> <Identifier> | <Identifier>, <IDs>')
+    Identifier()
+    if tokens_list[token_index][1] == ',':
+        if isID(tokens_list[token_index + 1][1]):
+            is_token(',')
+            IDs()   
 
 def Statement_List():
-    if Statement():
-        if Statement_List():
-             print('<Statement List> --> <Statement> <Statement List>')
-             return True
-        else:
-            print('<Statement List> --> <Statement>')
-            return True
-    else:
-        return False
+    global tokens_list
+    global token_index
+    print('<Statement List> --> <Statement> | <Statement> <Statement List>')
+    Statement()
+    # check if statement list can be called again aka if statement() can be called again
+    if tokens_list[token_index][1] == '{':
+        Statement_List()
+    elif isID(tokens_list[token_index][1]):
+        Statement_List()
+    elif tokens_list[token_index][1] == 'if':
+        Statement_List()
+    elif tokens_list[token_index][1] == 'ret':
+        Statement_List()
+    elif tokens_list[token_index][1] == 'put':
+        Statement_List()
+    elif tokens_list[token_index][1] == 'get':
+        Statement_List()
+    elif tokens_list[token_index][1] == 'while':
+        Statement_List()
     
 def Statement():
-    if Compound():
+    if tokens_list[token_index][1] == '{':
         print('<Statement> --> <Compound>')
-        return True
-    elif Assign():
-        print('<Statement> --> <Assign>')
-        return True
-    elif If():
-        print('<Statement> --> <If>')
-        return True
-    elif Return():
+        Compound()
+    elif tokens_list[token_index][1] == 'ret':
         print('<Statement> --> <Return>')
-        return True
-    elif Print():
+        Return()
+    elif tokens_list[token_index][1] == 'if':
+        print('<Statement> --> <If>')
+        If()
+    elif tokens_list[token_index][1] == 'put':
         print('<Statement> --> <Print>')
-        return True
-    elif Scan():
+        Print()
+    elif tokens_list[token_index][1] == 'get':
         print('<Statement> --> <Scan>')
-        return True
-    elif While():
+        Scan()
+    elif tokens_list[token_index][1] == 'while':
         print('<Statement> --> <While>')
-        return True
+        While()
+    elif isID(tokens_list[token_index][1]):
+        print('<Statement> --> <Assign>')
+        Assign()
     else:
-        return False
+        syntax_error('Statement')
+    
 
 def Compound():
-    if is_token('{'):
-        if Statement_List():
-            if is_token('}'):
-                print('<Compound> --> { <Statement List> }')
-                print(lexer('{'))
-                print(lexer('}'))
-                return True
-    else:
-        return False
+    print('<Compound> --> { <Statement List> }')
+    if not is_token('{'):
+        syntax_error('{')
+    Statement_List()
+    if not is_token('}'):
+        syntax_error('}')
 
 def Assign():
-    if Identifier():
-        if is_token('='):
-            if Expression():
-                if is_token(';'):
-                    print('<Assign> --> <Identifier> = <Expression> ;')
-                    print(lexer('='))
-                    print(lexer(';'))
-                    return True
-    else:
-        return False
+    print('<Assign> --> <Identifier> = <Expression> ;')
+    Identifier()
+    if not is_token('='):
+        syntax_error('=')
+    Expression()
+    if not is_token(';'):
+        syntax_error(';')
 
 def If():
-    if is_token('if'):
-        if is_token('('):
-            if Condition():
-                if is_token(')'):
-                    if Statement():
-                        if is_token('endif'):
-                            print('<If> --> if ( <Condition> ) <Statement> endif')
-                            print(lexer('if'))
-                            print(lexer('('))
-                            print(lexer(')'))
-                            print(lexer('endif'))
-                            return True
-                        elif is_token('else'):
-                            if Statement():
-                                if is_token('endif'):
-                                    print('<If> --> if ( <Condition> ) <Statement> else <Statement> endif')
-                                    print(lexer('if'))
-                                    print(lexer('('))
-                                    print(lexer(')'))
-                                    print(lexer('else'))
-                                    print(lexer('endif'))
+    global token_index
+    global tokens_list
+    if not is_token('if'):
+        syntax_error('if')
+    if not is_token('('):
+        syntax_error('(')
+    Condition()
+    if not is_token(')'):
+        syntax_error(')')
+    Statement()
+    # if token is not endif or else, call syntax error
+    if tokens_list[token_index][1] == 'endif':
+        is_token('if')
+    elif tokens_list[token_index][1] == 'else':
+        is_token('else')
+        Statement()
+        if not is_token('endif'):
+            syntax_error('endif')
+    else:
+        syntax_error('endif, else')
 
 def Return():
-    if is_token('ret'):
-        if is_token(';'):
-           print('<Return> --> ret ;')
-           print(lexer('ret'))
-           print(lexer(';'))
-           return True
-        else:
-            if Expression():
-                if is_token(';'):
-                    print('<Return> --> ret <expression>')
-                    print(lexer('ret'))
-                    print(lexer(';'))
-                    return True
+    global token_index
+    global tokens_list
+
+    if not is_token('ret'):
+        syntax_error('ret')
+    if tokens_list[token_index][1] == ';':
+        print('<Return> --> ret ;')
+        is_token(';')
     else:
-        return False
-                           
+        print('<Return> --< ret <Expression> ;')
+        Expression()
+        if not is_token(';'):
+            syntax_error(';')                 
                                             
 def Print():
-    if is_token('put'):
-        if is_token('('):
-            if Expression():
-                if is_token(')'):
-                    if is_token(';'):
-                        print('<Print> --> put ( <Expression> );')
-                        print(lexer('put'))
-                        print(lexer('('))
-                        print(lexer(')'))
-                        print(lexer(';'))
-                        return True
-    else:
-        return False
+    print('<Print> --> put ( <Expression> );')
+    if not is_token('put'):
+        syntax_error('put')
+    if not is_token('('):
+        syntax_error('(')
+    Expression()
+    if not is_token(')'):
+        syntax_error(')')
+    if not is_token(';'):
+        syntax_error(';')
 
 def Scan():
-    if is_token('get'):
-        if is_token('('):
-            if IDs():
-                if is_token(')'):
-                    print('<Scan> --> get (<IDs>)')
-                    print(lexer('get'))
-                    print(lexer('('))
-                    print(lexer(')'))
-                    return True
-    return False
+    print('<Scan> --> get (<IDs>)')
+    if not is_token('get'):
+        syntax_error('get')
+    if not is_token('('):
+        syntax_error('(')
+    IDs()
+    if not is_token(')'):
+        syntax_error(')')
+    if not is_token(';'):
+        syntax_error(';')
     
 def While():
-    if is_token('while'):
-        if is_token('('):
-            if Condition():
-                if is_token(')'):
-                    if Statement():
-                        print('<While> --> while ( <Condition> ) <Statement>')
-                        print(lexer('while'))
-                        print(lexer('('))
-                        print(lexer(')'))
-                        return True
-    return False
+    print('<While> --> while ( <Condition> ) <Statement>')
+    if not is_token('while'):
+        syntax_error('while')
+    if not is_token('('):
+        syntax_error('(')
+    Condition()
+    if not is_token(')'):
+        syntax_error(')')
+    Statement()
 
 def Condition():
-    if Expression():
-        if Relop():
-            if Expression():
-                print('<Condition> --> <Expression> <Relop> <Expression>')
-                return True
-    return False
+    print('<Condition> --> <Expression> <Relop> <Expression>')
+    Expression()
+    Relop()
+    Expression()
 
 def Relop():
-    if is_token('=='):
+    global tokens_list
+    global token_index
+    if tokens_list[token_index][1] == '==':
         print('<Relop> --> ==')
-        print(lexer('=='))
-        return True
-    elif is_token('!='):
+        is_token('==')
+    elif tokens_list[token_index][1] == '!=':
         print('<Relop> --> !=')
-        print(lexer('!='))
-        return True
-    elif is_token('>'):
+        is_token('!=')
+    elif tokens_list[token_index][1] == '>':
         print('<Relop> --> >')
-        print(lexer('>'))
-        return True
-    elif is_token('<'):
+        is_token('>')
+    elif tokens_list[token_index][1] == '<':
         print('<Relop> --> <')
-        print(lexer('<'))
-        return True
-    elif is_token('<='):
+        is_token('<')
+    elif tokens_list[token_index][1] == '<=':
         print('<Relop> --> <=')
-        print(lexer('<='))
-        return True
-    elif is_token('=>'):
+        is_token('<=')
+    elif tokens_list[token_index][1] == '=>':
         print('<Relop> --> =>')
-        print(lexer('=>'))
-        return True
+        is_token('=>')
     else:
-        return False
+        syntax_error('Relational Operator')
     
 def Expression():
-    if Term():
-        if Expression_Prime():
-            print('<Expression> --> <Term> <Expression>')
-            return True
-    return False
+    print("<Expression> --> <Term> <Expression'> ")
+    Term()
+    Expression_Prime()
 
 def Expression_Prime():
-    if is_token('+'):
-        if Term():
-            if Expression_Prime():
-                print("<Expression'> --> + <Term> <Expression'>")
-                print(lexer('+'))
-                return True
-                
-    elif is_token('-'):
-        if Term():
-            if Expression_Prime():
-                print("<Expression'> --> - <Term> <Expression'>")
-                print(lexer('-'))
-                return True
-    elif Empty():
-        return True
+    global tokens_list
+    global token_index
+    if tokens_list[token_index][1] == ('+'):
+        is_token('+')
+        print("<Expression'> --> + <Term> <Expression'>")
+        Term()
+        Expression_Prime()
+    elif tokens_list[token_index][1] == ('-'):
+        is_token('-')
+        print("<Expression'> --> - <Term> <Expression'>")
+        Term()
+        Expression_Prime()    
     else:
-        return False
+        print("<Expression'> --> ε")
+        Empty()
     
 def Term():
-    if Factor():
-        if Term_Prime():
-            print("<Term> --> <Factor> <Term'>")
-            print('<Factor> <Term')
-            return True
-    return False
+    print("<Term> --> <Factor> <Term'>")
+    Factor()
+    Term_Prime()
 
 def Term_Prime():
-    if is_token('*'):
-        if Factor():
-            if Term_Prime():
-                print("<Term'> --> * <Factor> <Term'>")
-                print(lexer('*'))
-    elif is_token('/'):
-        if Factor():
-            if Term_Prime():
-                print("<Term'> --> / <Factor> <Term'>")
-                print(lexer('/'))
-    elif Empty():
-        return True
+    global tokens_list
+    global token_index
+    if tokens_list[token_index][1] == ('*'):
+        print("<Term'> --> * <Factor> <Term'>")
+        is_token('*')
+        Factor()
+        Term_Prime()
+    elif tokens_list[token_index][1] == ('/'):
+        print("<Term'> --> / <Factor> <Term'>")
+        is_token('/')
+        Factor()
+        Term_Prime()
     else:
-        return False
+        print("<Term'> --> ε")
+        Empty()
     
 def Factor():
-    if is_token('-'):
-        if Primary():
-            print('<Factor> --> - <Primary>')
-            print(lexer('-'))
-            return True
-    elif Primary():
-        print('<Factor> --> <Primary>')
+    global tokens_list
+    global token_index
+    if tokens_list[token_index] == ('-'):
+        print('<Factor> --> - <Primary>')
+        is_token('-')
+        Primary()
     else:
-        return False
+        print('<Factor> --> <Primary>')
+        Primary()
     
 def Primary():
-    if Identifier():
-        print('<Primary> --> <Identifier>')
-        return True
-    elif Integer():
+    global tokens_list
+    global token_index
+    if isInt(tokens_list[token_index][1]):
         print('<Primary> --> <Integer>')
-        return True
-    elif Identifier():
-        if is_token('('):
-            if IDs():
-                if is_token(')'):
-                    print('<Primary> --> <Identifier> (<IDs>)')
-                    print(lexer('('))
-                    print(lexer(')'))
-                    return True
-    elif is_token('('):
-        if Expression():
-            if is_token(')'):
-                print('<Primary> --> (<Expression>)')
-                print(lexer('('))
-                print(lexer(')'))
-                return True
-    elif Real():
+        Integer()
+    elif isReal(tokens_list[token_index][1]):
         print('<Primary> --> <Real>')
-        return True
-    elif is_token('true'):
+        Real()
+    elif tokens_list[token_index][1] == '(':
+        print('<Primary> --> (<Expression>)')
+        is_token('(')
+        Expression()
+        if not is_token(')'):
+            syntax_error(')')
+    elif tokens_list[token_index][1] == 'true':
         print('<Primary> --> true')
-        print(lexer('true'))
-        return True
-    elif is_token('false'):
-        print('<Primary> --> true')
-        print(lexer('false'))
-        return True
-    else:
-        return False
-
+        is_token('true')
+    elif tokens_list[token_index][1] == 'false':
+        print('<Primary> --> false')
+        is_token('false')
+    elif isID(tokens_list[token_index][1]):
+        print('<Primary> --> <Identifier> | <Primary> --> <Identifier> ( <IDs> )')
+        Identifier()
+        if tokens_list[token_index][1] == '(':
+            is_token('(')
+            IDs()
+            if not is_token(')'):
+                syntax_error(')')
 def Empty():
-    print('<Empty> --> epsilon')
+    print('<Empty> --> ε')
     return True
 
 def Identifier():
     global token_index
     global tokens_list
     if isID(tokens_list[token_index][1]):
-        print(lexer(tokens_list[token_index][1]))
+        print(f'Matched Token: {tokens_list[token_index]}, Lexeme: {tokens_list[token_index][1]}')
         token_index += 1
-        return True
     else:
-        return False
+        syntax_error('ID')
 
 def Real():
     global token_index
     global tokens_list
     if isReal(tokens_list[token_index][1]):
-        print(lexer(tokens_list[token_index][1]))
+        print(f'Matched Token: {tokens_list[token_index]}, Lexeme: {tokens_list[token_index][1]}')
         token_index += 1
-        return True
     else:
-        return False
+        syntax_error('Real')
     
     
 def Integer():
     global token_index
     global tokens_list
     if isInt(tokens_list[token_index][1]):
-        print(lexer(tokens_list[token_index][1]))
+        print(f'Matched Token: {tokens_list[token_index]}, Lexeme: {tokens_list[token_index][1]}')
         token_index += 1
-        return True
     else:
-        return False
-# the main program
+        syntax_error('Integer')
+
+with open('testCases/testCase1.txt', 'a') as f:
+    f.write(' ')
+
 tokens_list = []
-token_index = 9
+token_index = 0
 getTokens('testCases/testCase1.txt', tokens_list)
-# print(tokens_list)
+file = open('output.txt', 'w')
+sys.stdout = file
 if Rat23F():
     print('Parsing Complete')
 else:
-    syntax_error()
+    print('Parsing Failed')
+file.close
