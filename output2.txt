@@ -6,43 +6,13 @@ Matched Token: ['SEPARATOR', '#'], Lexeme: #
 <Qualifier> --> integer
 Matched Token: ['KEYWORDS', 'integer'], Lexeme: integer
 <IDs> --> <Identifier> | <Identifier>, <IDs>
-Matched Token: ['IDENTIFIER', 'i'], Lexeme: i
+Matched Token: ['IDENTIFIER', 'low'], Lexeme: low
 Matched Token: ['SEPARATOR', ','], Lexeme: ,
 <IDs> --> <Identifier> | <Identifier>, <IDs>
-Matched Token: ['IDENTIFIER', 'max'], Lexeme: max
+Matched Token: ['IDENTIFIER', 'high'], Lexeme: high
 Matched Token: ['SEPARATOR', ','], Lexeme: ,
 <IDs> --> <Identifier> | <Identifier>, <IDs>
-Matched Token: ['IDENTIFIER', 'sum'], Lexeme: sum
-Matched Token: ['SEPARATOR', ';'], Lexeme: ;
-<Statement List> --> <Statement> | <Statement> <Statement List>
-<Statement> --> <Assign>
-<Assign> --> <Identifier> = <Expression> ;
-Matched Token: ['IDENTIFIER', 'sum'], Lexeme: sum
-Matched Token: ['OPERATOR', '='], Lexeme: =
-<Expression> --> <Term> <Expression'> 
-<Term> --> <Factor> <Term'>
-<Factor> --> <Primary>
-<Primary> --> <Integer>
-Matched Token: ['INTEGER', '0'], Lexeme: 0
-<Term'> --> ε
-<Empty> --> ε
-<Expression'> --> ε
-<Empty> --> ε
-Matched Token: ['SEPARATOR', ';'], Lexeme: ;
-<Statement List> --> <Statement> | <Statement> <Statement List>
-<Statement> --> <Assign>
-<Assign> --> <Identifier> = <Expression> ;
-Matched Token: ['IDENTIFIER', 'i'], Lexeme: i
-Matched Token: ['OPERATOR', '='], Lexeme: =
-<Expression> --> <Term> <Expression'> 
-<Term> --> <Factor> <Term'>
-<Factor> --> <Primary>
-<Primary> --> <Integer>
-Matched Token: ['INTEGER', '1'], Lexeme: 1
-<Term'> --> ε
-<Empty> --> ε
-<Expression'> --> ε
-<Empty> --> ε
+Matched Token: ['IDENTIFIER', 'step'], Lexeme: step
 Matched Token: ['SEPARATOR', ';'], Lexeme: ;
 <Statement List> --> <Statement> | <Statement> <Statement List>
 <Statement> --> <Scan>
@@ -50,7 +20,13 @@ Matched Token: ['SEPARATOR', ';'], Lexeme: ;
 Matched Token: ['KEYWORDS', 'get'], Lexeme: get
 Matched Token: ['SEPARATOR', '('], Lexeme: (
 <IDs> --> <Identifier> | <Identifier>, <IDs>
-Matched Token: ['IDENTIFIER', 'max'], Lexeme: max
+Matched Token: ['IDENTIFIER', 'low'], Lexeme: low
+Matched Token: ['SEPARATOR', ','], Lexeme: ,
+<IDs> --> <Identifier> | <Identifier>, <IDs>
+Matched Token: ['IDENTIFIER', 'high'], Lexeme: high
+Matched Token: ['SEPARATOR', ','], Lexeme: ,
+<IDs> --> <Identifier> | <Identifier>, <IDs>
+Matched Token: ['IDENTIFIER', 'step'], Lexeme: step
 Matched Token: ['SEPARATOR', ')'], Lexeme: )
 Matched Token: ['SEPARATOR', ';'], Lexeme: ;
 <Statement List> --> <Statement> | <Statement> <Statement List>
@@ -63,18 +39,18 @@ Matched Token: ['SEPARATOR', '('], Lexeme: (
 <Term> --> <Factor> <Term'>
 <Factor> --> <Primary>
 <Primary> --> <Identifier> | <Primary> --> <Identifier> ( <IDs> )
-Matched Token: ['IDENTIFIER', 'i'], Lexeme: i
+Matched Token: ['IDENTIFIER', 'low'], Lexeme: low
 <Term'> --> ε
 <Empty> --> ε
 <Expression'> --> ε
 <Empty> --> ε
-<Relop> --> <
-Matched Token: ['OPERATOR', '<'], Lexeme: <
+<Relop> --> <=
+Matched Token: ['OPERATOR', '<='], Lexeme: <=
 <Expression> --> <Term> <Expression'> 
 <Term> --> <Factor> <Term'>
 <Factor> --> <Primary>
 <Primary> --> <Identifier> | <Primary> --> <Identifier> ( <IDs> )
-Matched Token: ['IDENTIFIER', 'max'], Lexeme: max
+Matched Token: ['IDENTIFIER', 'high'], Lexeme: high
 <Term'> --> ε
 <Empty> --> ε
 <Expression'> --> ε
@@ -84,49 +60,21 @@ Matched Token: ['SEPARATOR', ')'], Lexeme: )
 <Compound> --> { <Statement List> }
 Matched Token: ['SEPARATOR', '{'], Lexeme: {
 <Statement List> --> <Statement> | <Statement> <Statement List>
-<Statement> --> <Assign>
-<Assign> --> <Identifier> = <Expression> ;
-Matched Token: ['IDENTIFIER', 'sum'], Lexeme: sum
-Matched Token: ['OPERATOR', '='], Lexeme: =
+<Statement> --> <Print>
+<Print> --> put ( <Expression> );
+Matched Token: ['KEYWORDS', 'put'], Lexeme: put
+Matched Token: ['SEPARATOR', '('], Lexeme: (
 <Expression> --> <Term> <Expression'> 
 <Term> --> <Factor> <Term'>
 <Factor> --> <Primary>
 <Primary> --> <Identifier> | <Primary> --> <Identifier> ( <IDs> )
-Matched Token: ['IDENTIFIER', 'sum'], Lexeme: sum
-<Term'> --> ε
-<Empty> --> ε
-Matched Token: ['OPERATOR', '+'], Lexeme: +
-<Expression'> --> + <Term> <Expression'>
-<Term> --> <Factor> <Term'>
-<Factor> --> <Primary>
-<Primary> --> <Identifier> | <Primary> --> <Identifier> ( <IDs> )
-Matched Token: ['IDENTIFIER', 'i'], Lexeme: i
+Matched Token: ['IDENTIFIER', 'low'], Lexeme: low
 <Term'> --> ε
 <Empty> --> ε
 <Expression'> --> ε
 <Empty> --> ε
+Matched Token: ['SEPARATOR', ')'], Lexeme: )
 Matched Token: ['SEPARATOR', ';'], Lexeme: ;
-<Statement List> --> <Statement> | <Statement> <Statement List>
-<Statement> --> <Assign>
-<Assign> --> <Identifier> = <Expression> ;
-Matched Token: ['IDENTIFIER', 'i'], Lexeme: i
-Matched Token: ['OPERATOR', '='], Lexeme: =
-<Expression> --> <Term> <Expression'> 
-<Term> --> <Factor> <Term'>
-<Factor> --> <Primary>
-<Primary> --> <Identifier> | <Primary> --> <Identifier> ( <IDs> )
-Matched Token: ['IDENTIFIER', 'i'], Lexeme: i
-<Term'> --> * <Factor> <Term'>
-Matched Token: ['OPERATOR', '*'], Lexeme: *
-<Factor> --> <Primary>
-<Primary> --> <Integer>
-Matched Token: ['INTEGER', '1'], Lexeme: 1
-<Term'> --> ε
-<Empty> --> ε
-<Expression'> --> ε
-<Empty> --> ε
-Matched Token: ['SEPARATOR', ';'], Lexeme: ;
-Matched Token: ['SEPARATOR', '}'], Lexeme: }
 <Statement List> --> <Statement> | <Statement> <Statement List>
 <Statement> --> <Print>
 <Print> --> put ( <Expression> );
@@ -136,7 +84,27 @@ Matched Token: ['SEPARATOR', '('], Lexeme: (
 <Term> --> <Factor> <Term'>
 <Factor> --> <Primary>
 <Primary> --> <Identifier> | <Primary> --> <Identifier> ( <IDs> )
-Matched Token: ['IDENTIFIER', 'sum'], Lexeme: sum
+Matched Token: ['IDENTIFIER', 'convert1x'], Lexeme: convert1x
+Matched Token: ['SEPARATOR', '('], Lexeme: (
+<IDs> --> <Identifier> | <Identifier>, <IDs>
+Matched Token: ['IDENTIFIER', 'low'], Lexeme: low
+Matched Token: ['SEPARATOR', ')'], Lexeme: )
+<Term'> --> ε
+<Empty> --> ε
+<Expression'> --> ε
+<Empty> --> ε
+Matched Token: ['SEPARATOR', ')'], Lexeme: )
+Matched Token: ['SEPARATOR', ';'], Lexeme: ;
+<Statement List> --> <Statement> | <Statement> <Statement List>
+<Statement> --> <Assign>
+<Assign> --> <Identifier> = <Expression> ;
+Matched Token: ['IDENTIFIER', 'low'], Lexeme: low
+Matched Token: ['OPERATOR', '='], Lexeme: =
+<Expression> --> <Term> <Expression'> 
+<Term> --> <Factor> <Term'>
+<Factor> --> <Primary>
+<Primary> --> <Identifier> | <Primary> --> <Identifier> ( <IDs> )
+Matched Token: ['IDENTIFIER', 'low'], Lexeme: low
 <Term'> --> ε
 <Empty> --> ε
 Matched Token: ['OPERATOR', '+'], Lexeme: +
@@ -144,46 +112,50 @@ Matched Token: ['OPERATOR', '+'], Lexeme: +
 <Term> --> <Factor> <Term'>
 <Factor> --> <Primary>
 <Primary> --> <Identifier> | <Primary> --> <Identifier> ( <IDs> )
-Matched Token: ['IDENTIFIER', 'max'], Lexeme: max
+Matched Token: ['IDENTIFIER', 'step'], Lexeme: step
 <Term'> --> ε
 <Empty> --> ε
 <Expression'> --> ε
 <Empty> --> ε
-Matched Token: ['SEPARATOR', ')'], Lexeme: )
 Matched Token: ['SEPARATOR', ';'], Lexeme: ;
+Matched Token: ['SEPARATOR', '}'], Lexeme: }
 Matched Token: ['SEPARATOR', '#'], Lexeme: #
 Parsing Complete
-   1: PUSHM  7000
-   2: PUSHM  7001
-   3: PUSHM  7002
-   4: PUSHM  7002
-   5: PUSHI  0
-   6: POPM   7002
-   7: PUSHM  7000
-   8: PUSHI  1
-   9: POPM   7000
-  10: PUSHM  7001
-  11: LABEL  nil
-  12: PUSHM  7000
-  13: LES    nil
-  14: JUMPZ  nil
-  15: PUSHM  27
-  16: PUSHM  7002
-  17: PUSHM  7002
-  18: PUSHM  7000
-  19: ADD    nil
-  20: POPM   7002
-  21: PUSHM  7000
-  22: PUSHM  7000
-  23: PUSHI  1
-  24: MUL    nil
-  25: POPM   7000
-  26: JUMP   11
-  27: PUSHM  7002
-  28: PUSHM  7001
-  29: ADD    nil
-  30: STDOUT nil
+
+
+ASSEMBLY CODE
+   1: PUSHM  7003
+   2: PUSHM  7004
+   3: PUSHM  7005
+   4: PUSHM  7003
+   5: PUSHM  7004
+   6: PUSHM  7005
+   7: LABEL  nil
+   8: PUSHM  7003
+   9: LEQ    nil
+  10: JUMPZ  nil
+  11: PUSHM  24
+  12: JUMPZ  nil
+  13: PUSHM  7003
+  14: STDOUT nil
+  15: PUSHM  7006
+  16: PUSHM  7003
+  17: STDOUT nil
+  18: PUSHM  7003
+  19: PUSHM  7003
+  20: PUSHM  7005
+  21: ADD    nil
+  22: POPM   7003
+  23: JUMP   7
+  24: LABEL  nil
+
+
+SYMBOL TABlE
 Identifier	Memory Location	Type
-i		7000		ID
-max		7001		ID
-sum		7002		ID
+i		7000		integer
+max		7001		integer
+sum		7002		integer
+low		7003		integer
+high		7004		integer
+step		7005		integer
+convert1x		7006		None

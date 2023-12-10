@@ -1,1 +1,38 @@
-    
+#
+integer num, threshold;
+bool flag;
+
+[* Assigning initial values *]
+get(num);
+get(threshold);
+
+[* Set flag based on the threshold *]
+if (num > threshold) 
+{
+    flag = true;
+    if (num > threshold + 10) 
+    {
+        [* Nested if for a specific case *]
+        put(num);
+    }
+    else 
+    {
+        put(threshold);
+    }
+    endif
+} 
+else 
+{
+    flag = false;
+    put(flag);
+}
+endif
+
+[* Loop with a condition using a relational operator *]
+while (num <= threshold) 
+{
+    [* Print num and increment it by step *]
+    put(num);
+    num = num + 1;
+}  
+# 

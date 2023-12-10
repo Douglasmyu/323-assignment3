@@ -27,3 +27,9 @@ def get_address(identifier):
     else:
         print(f"Error: Identifer '{identifier}' not declared.")
         return
+    
+def get_identifier_type(identifier):
+    if identifier in symbol_table:
+        return symbol_table[identifier]['type']
+    else:
+        return None

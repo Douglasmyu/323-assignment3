@@ -504,16 +504,20 @@ def Integer():
     else:
         syntax_error('Integer')
 
-with open('testCases/testCase1.txt', 'a') as f:
-    f.write(' ')
+testFiles = ["testCases/testCase1.txt", "testCases/testCase2.txt", "testCases/testCase3.txt"]
+outputFiles = ["output1.txt", "output2.txt", "output3.txt" ]
 
-tokens_list = []
-token_index = 0
-getTokens('testCases/testCase1.txt', tokens_list)
-file = open('output.txt', 'w')
-sys.stdout = file
-if Rat23F():
-    print('Parsing Complete')
-else:
-    print('Parsing Failed')
-file.close
+for i in range(3):
+    with open(testFiles[i], 'a') as f:
+        f.write(' ')
+for i in range(3):
+    tokens_list = []
+    token_index = 0
+    getTokens(testFiles[i], tokens_list)
+    file = open(outputFiles[i], 'w')
+    sys.stdout = file
+    if Rat23F():
+        print('Parsing Complete')
+    else:
+        print('Parsing Failed')
+    file.close

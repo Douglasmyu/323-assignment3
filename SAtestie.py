@@ -208,13 +208,16 @@ def Qualifier():
     global tokens_list
     if tokens_list[token_index][1] == 'integer':
         print('<Qualifier> --> integer')
-        is_token('integer') 
+        is_token('integer')
+        return 'integer'
     elif tokens_list[token_index][1] == 'bool':
         print('<Qualifier> --> bool')
         is_token('bool')
+        return 'bool'
     elif tokens_list[token_index][1] == 'real':
         print('<Qualifier> --> real')
         is_token('real')
+        return 'real'
     else:
         syntax_error('integer, bool, real')
     
@@ -250,18 +253,18 @@ def Declaration_List():
 
 def Declaration():
     print('<Declaration> --> <Qualifier> <IDs>')
-    Qualifier()
-    IDs()
+    declared_type = Qualifier()
+    IDs(declared_type)
     
-def IDs():
+def IDs(declared_type=None):
     global token_index
     global tokens_list
     print('<IDs> --> <Identifier> | <Identifier>, <IDs>')
-    Identifier()
+    Identifier(declared_type)
     if tokens_list[token_index][1] == ',':
         if isID(tokens_list[token_index + 1][1]):
             is_token(',')
-            IDs()   
+            IDs(declared_type)   
 
 def Statement_List():
     global tokens_list
@@ -364,8 +367,6 @@ def If():
         # jumping over the else block if the if block is executed
         gen_instr('JUMP', None)
         end_jump_addr = instr_address - 1
-        push_jumpstack(end_jump_addr)
-        
         back_patch(false_jump_addr)
         is_token('else')
         Statement()
@@ -393,7 +394,8 @@ def Return():
         Expression()
         if not is_token(';'):
             syntax_error(';')                 
-                                            
+
+# put()                                      
 def Print():
     print('<Print> --> put ( <Expression> );')
     if not is_token('put'):
@@ -403,10 +405,12 @@ def Print():
     Expression()
     if not is_token(')'):
         syntax_error(')')
-    gen_instr('STDOUT', None)
     if not is_token(';'):
         syntax_error(';')
+    gen_instr('STDOUT', None)
+        
 
+# get()
 def Scan():
     print('<Scan> --> get (<IDs>)')
     if not is_token('get'):
@@ -416,8 +420,6 @@ def Scan():
     IDs()
     if not is_token(')'):
         syntax_error(')')
-    
-    
     
     if not is_token(';'):
         syntax_error(';')
@@ -436,6 +438,10 @@ def While():
         
     Condition()
     
+    # conditional jump that would be back-patched
+    gen_instr('JUMPZ', None)
+    exit_address = instr_address - 1
+    
     if not is_token(')'):
         syntax_error(')')
         
@@ -445,6 +451,7 @@ def While():
     gen_instr('JUMP', start_addr)
     # back-patch the address after the loop is done
     back_patch(instr_address)
+    gen_instr('LABEL', None)
 
 def Condition():
     print('<Condition> --> <Expression> <Relop> <Expression>')
@@ -591,7 +598,7 @@ def Empty():
     print('<Empty> --> ε')
     return True
 
-def Identifier():
+def Identifier(declared_type=None):
     global token_index
     global tokens_list
     global assembly_instructions, memory_address
@@ -601,9 +608,7 @@ def Identifier():
         print(f'Matched Token: {tokens_list[token_index]}, Lexeme: {tokens_list[token_index][1]}')
         
         if not identifiers_exist(identifier):
-            # assuming data type is known or can be determined
-            # handle types later adam!
-            insert_identifiers(identifier, 'ID')
+            insert_identifiers(identifier, declared_type)
             
         address = get_address(identifier)
         if address is not None:
@@ -638,18 +643,26 @@ def Integer():
     else:
         syntax_error('Integer')
 
-with open('testCases/testCase1.txt', 'a') as f:
-    f.write(' ')
+testFiles = ["testCases/testCase1.txt", "testCases/testCase2.txt", "testCases/testCase3.txt"]
+outputFiles = ["output1.txt", "output2.txt", "output3.txt" ]
 
-tokens_list = []
-token_index = 0
-getTokens('testCases/testCase1.txt', tokens_list)
-file = open('output.txt', 'w')
-sys.stdout = file
-if Rat23F():
-    print('Parsing Complete')
-    print_assembly()    
-    print_all_identifiers()
-else:
-    print('Parsing Failed')
-file.close
+for i in range(3):
+    with open(testFiles[i], 'a') as f:
+        f.write(' ')
+for i in range(3):
+    tokens_list = []
+    token_index = 0
+    getTokens(testFiles[i], tokens_list)
+    file = open(outputFiles[i], 'w')
+    sys.stdout = file
+    if Rat23F():
+        print('Parsing Complete')
+        print('\n')
+        print('ASSEMBLY CODE')
+        print_assembly()
+        print('\n')
+        print('SYMBOL TABlE')
+        print_all_identifiers()
+    else:
+        print('Parsing Failed')
+    file.close
