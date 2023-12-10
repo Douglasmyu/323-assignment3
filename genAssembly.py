@@ -1,5 +1,48 @@
 from lexer import *
+from symbolTable import *
 import sys
+
+# initialize global vars
+assembly_instructions = []
+# each time a new variable is declared, starting from 7000 increment by 1 for each new variable
+instr_address = 1
+jump_stack = []
+symbol_table = {}
+memory_Address = 7000
+
+# generate assembly instructions and append it to the global array
+def gen_instr(op, oprnd=None):
+    global assembly_instructions, instr_address
+    
+    if oprnd is None:
+        oprnd = 'nil'
+    
+    # creating a new instruction
+    instruction = {
+        'address': instr_address,
+        'op': op,
+        'oprnd': oprnd
+    }
+    
+    assembly_instructions.append(instruction)
+    instr_address += 1
+
+# pushes instruction address into jump stack
+def push_jumpstack(address):
+    global jump_stack
+    jump_stack.append(address)
+    
+def pop_jumpstack():
+    global jump_stack
+    if jump_stack:
+        return jump_stack.pop()
+    else:
+        raise Exception('Jump stack is emptyq')
+
+def back_patch(jump_addr):
+    global assembly_instructions
+    addr = pop_jumpstack()
+    assembly_instructions[addr]['oprnd'] = jump_addr
 
 # basically runs through the lexer program from A1 but shoves the tokens and lexemes in a list that the parser will call
 def getTokens(filename, tokensList):
@@ -56,13 +99,17 @@ def getTokens(filename, tokensList):
 def advance():
     global token_index
     global tokens_list
-    if tokens_list[token_index] is not None:
+    if token_index < len(tokens_list) - 1:
         token_index += 1
+    # if tokens_list[token_index] is not None:
+    #     token_index += 1
 
 # compares lexeme with expected and progresses token index and prints the token processed
 def is_token(expected):
     global token_index
     global tokens_list
+    if token_index >= len(tokens_list):
+        return False
     # compares current lexeme with expected 
     if tokens_list[token_index][1] == expected:
         print(f'Matched Token: {tokens_list[token_index]}, Lexeme: {tokens_list[token_index][1]}')
@@ -86,35 +133,33 @@ def syntax_error(expected):
     }
     raise SyntaxError(error_message)
 
+def print_assembly():
+    for instr in assembly_instructions:
+        # Extracting operation and operand from the instruction
+        operation = instr['op']
+        operand = instr['oprnd'] if instr['oprnd'] is not None else ''
+        # Formatting and printing each instruction
+        print(f"{instr['address']:>4}: {operation:<6} {operand}")
 
 #production rules
 def Rat23F():
+    global assembly_instructions, memory_address, instr_address
     print('<Rat23F> --> <Opt Function Definitions> # <Opt Declaration List> <Statement List> #')
-    Opt_Function_Definitions()
+    
+    # initializing the global variables to the start position
+    assembly_instructions = []
+    memory_address = 7000
+    instr_address = 1
+    
+    # Opt_Function_Definitions()
     if not is_token('#'):
         syntax_error('#')
     Opt_Declaration_List()
     Statement_List()
     if not is_token('#'):
-        syntax_error('#')   
+        syntax_error('#')
+       
     return True
-    
-def Opt_Function_Definitions():
-    # looking to see if the current position could start <Function>
-    if tokens_list[token_index][1] == 'function':
-        print('<Opt Function Definitions> --> <Function Definitions>')
-        Function_Definitions()
-    # if <Function> could not be started then do nothing
-    else:
-        print('<Opt Function Definitions> --> <Empty>')
-        Empty()
-
-def Function_Definitions():
-    print('<Function Definitions> --> <Function> <Function Definitions> | <Function Definitions> --> <Function>')
-    Function()
-    if tokens_list[token_index][1] == 'function':
-        # looking to see if the current position could start <Function>
-        Function_Definitions()
 
 def Function():
     global token_index
@@ -167,13 +212,16 @@ def Qualifier():
     global tokens_list
     if tokens_list[token_index][1] == 'integer':
         print('<Qualifier> --> integer')
-        is_token('integer') 
+        is_token('integer')
+        return 'integer'
     elif tokens_list[token_index][1] == 'bool':
         print('<Qualifier> --> bool')
         is_token('bool')
+        return 'bool'
     elif tokens_list[token_index][1] == 'real':
         print('<Qualifier> --> real')
         is_token('real')
+        return 'real'
     else:
         syntax_error('integer, bool, real')
     
@@ -209,18 +257,18 @@ def Declaration_List():
 
 def Declaration():
     print('<Declaration> --> <Qualifier> <IDs>')
-    Qualifier()
-    IDs()
+    declared_type = Qualifier()
+    IDs(declared_type)
     
-def IDs():
+def IDs(declared_type=None):
     global token_index
     global tokens_list
     print('<IDs> --> <Identifier> | <Identifier>, <IDs>')
-    Identifier()
+    Identifier(declared_type)
     if tokens_list[token_index][1] == ',':
         if isID(tokens_list[token_index + 1][1]):
             is_token(',')
-            IDs()   
+            IDs(declared_type)   
 
 def Statement_List():
     global tokens_list
@@ -280,15 +328,25 @@ def Compound():
 def Assign():
     print('<Assign> --> <Identifier> = <Expression> ;')
     Identifier()
-    if not is_token('='):
+    
+    # saving the identifier
+    save = tokens_list[token_index - 1][1]
+    
+    if is_token('='):
+        Expression()
+
+        gen_instr('POPM', get_address(save))
+        
+        if not is_token(';'):
+            syntax_error(';')
+    else:
         syntax_error('=')
-    Expression()
-    if not is_token(';'):
-        syntax_error(';')
 
 def If():
     global token_index
     global tokens_list
+    global instr_address
+    
     if not is_token('if'):
         syntax_error('if')
     if not is_token('('):
@@ -296,16 +354,34 @@ def If():
     Condition()
     if not is_token(')'):
         syntax_error(')')
+    
+    gen_instr('JUMPZ', None)
+    false_jump_addr = instr_address - 1 # address to back-patch
+    push_jumpstack(false_jump_addr)
+    
     Statement()
+    
     # if token is not endif or else, call syntax error
     if tokens_list[token_index][1] == 'endif':
-        is_token('if')
+        # back-patch for the JUMPZ instructoin
+        back_patch(false_jump_addr)
+        is_token('endif')
+        
     elif tokens_list[token_index][1] == 'else':
+        # jumping over the else block if the if block is executed
+        gen_instr('JUMP', None)
+        end_jump_addr = instr_address - 1
+        back_patch(false_jump_addr)
         is_token('else')
         Statement()
+        
+        # back-patch the address after executing the if block
+        back_patch(end_jump_addr)
+        
         if not is_token('endif'):
             syntax_error('endif')
     else:
+        back_patch(false_jump_addr) # if there is no else, back-patch
         syntax_error('endif, else')
 
 def Return():
@@ -322,7 +398,8 @@ def Return():
         Expression()
         if not is_token(';'):
             syntax_error(';')                 
-                                            
+
+# put()                                      
 def Print():
     print('<Print> --> put ( <Expression> );')
     if not is_token('put'):
@@ -334,7 +411,10 @@ def Print():
         syntax_error(')')
     if not is_token(';'):
         syntax_error(';')
+    gen_instr('STDOUT', None)
+        
 
+# get()
 def Scan():
     print('<Scan> --> get (<IDs>)')
     if not is_token('get'):
@@ -344,6 +424,7 @@ def Scan():
     IDs()
     if not is_token(')'):
         syntax_error(')')
+    
     if not is_token(';'):
         syntax_error(';')
     
@@ -351,12 +432,30 @@ def While():
     print('<While> --> while ( <Condition> ) <Statement>')
     if not is_token('while'):
         syntax_error('while')
+        
+    # getting the address before the loop starts
+    start_addr = instr_address
+    gen_instr('LABEL', None)
+    
     if not is_token('('):
         syntax_error('(')
+        
     Condition()
+    
+    # conditional jump that would be back-patched
+    gen_instr('JUMPZ', None)
+    exit_address = instr_address - 1
+    
     if not is_token(')'):
         syntax_error(')')
+        
     Statement()
+
+    # JUMP back to start
+    gen_instr('JUMP', start_addr)
+    # back-patch the address after the loop is done
+    back_patch(instr_address)
+    gen_instr('LABEL', None)
 
 def Condition():
     print('<Condition> --> <Expression> <Relop> <Expression>')
@@ -370,24 +469,42 @@ def Relop():
     if tokens_list[token_index][1] == '==':
         print('<Relop> --> ==')
         is_token('==')
+        gen_instr('EQU', None)
+        push_jumpstack(instr_address)
+        gen_instr('JUMPZ', None)
     elif tokens_list[token_index][1] == '!=':
         print('<Relop> --> !=')
         is_token('!=')
+        gen_instr('NEQ', None)
+        push_jumpstack(instr_address)
+        gen_instr('JUMPZ', None)
     elif tokens_list[token_index][1] == '>':
         print('<Relop> --> >')
         is_token('>')
+        gen_instr('GRT', None)
+        push_jumpstack(instr_address)
+        gen_instr('JUMPZ', None)
     elif tokens_list[token_index][1] == '<':
         print('<Relop> --> <')
         is_token('<')
+        gen_instr('LES', None)
+        push_jumpstack(instr_address)
+        gen_instr('JUMPZ', None)
     elif tokens_list[token_index][1] == '<=':
         print('<Relop> --> <=')
         is_token('<=')
+        gen_instr('LEQ', None)
+        push_jumpstack(instr_address)
+        gen_instr('JUMPZ', None)
     elif tokens_list[token_index][1] == '=>':
         print('<Relop> --> =>')
         is_token('=>')
+        gen_instr('GEQ', None)
+        push_jumpstack(instr_address)
+        gen_instr('JUMPZ', None)
     else:
         syntax_error('Relational Operator')
-    
+        
 def Expression():
     print("<Expression> --> <Term> <Expression'> ")
     Term()
@@ -400,12 +517,17 @@ def Expression_Prime():
         is_token('+')
         print("<Expression'> --> + <Term> <Expression'>")
         Term()
+        # GENERATE ADD INSTRUCTION
+        gen_instr('ADD', None) 
         Expression_Prime()
     elif tokens_list[token_index][1] == ('-'):
         is_token('-')
         print("<Expression'> --> - <Term> <Expression'>")
         Term()
-        Expression_Prime()    
+        # GENERATE SUBTRACT INSTRUCTION
+        gen_instr('SUB', None)    
+        Expression_Prime()
+
     else:
         print("<Expression'> --> ε")
         Empty()
@@ -422,11 +544,15 @@ def Term_Prime():
         print("<Term'> --> * <Factor> <Term'>")
         is_token('*')
         Factor()
+        # gen MUL instruction
+        gen_instr('MUL', None)
         Term_Prime()
     elif tokens_list[token_index][1] == ('/'):
         print("<Term'> --> / <Factor> <Term'>")
         is_token('/')
         Factor()
+        # gen DIV instruction
+        gen_instr('DIV', None)
         Term_Prime()
     else:
         print("<Term'> --> ε")
@@ -449,9 +575,9 @@ def Primary():
     if isInt(tokens_list[token_index][1]):
         print('<Primary> --> <Integer>')
         Integer()
-    elif isReal(tokens_list[token_index][1]):
-        print('<Primary> --> <Real>')
-        Real()
+    # elif isReal(tokens_list[token_index][1]):
+    #     print('<Primary> --> <Real>')
+    #     Real()
     elif tokens_list[token_index][1] == '(':
         print('<Primary> --> (<Expression>)')
         is_token('(')
@@ -476,30 +602,47 @@ def Empty():
     print('<Empty> --> ε')
     return True
 
-def Identifier():
+def Identifier(declared_type=None):
     global token_index
     global tokens_list
+    global assembly_instructions, memory_address
+    
     if isID(tokens_list[token_index][1]):
+        identifier = tokens_list[token_index][1]
         print(f'Matched Token: {tokens_list[token_index]}, Lexeme: {tokens_list[token_index][1]}')
+        
+        if not identifiers_exist(identifier):
+            insert_identifiers(identifier, declared_type)
+            
+        address = get_address(identifier)
+        if address is not None:
+            gen_instr('PUSHM', address)
+        else:
+            raise Exception(f"Error handling for identifer `{identifier}`")
+        
         token_index += 1
     else:
         syntax_error('ID')
 
-def Real():
-    global token_index
-    global tokens_list
-    if isReal(tokens_list[token_index][1]):
-        print(f'Matched Token: {tokens_list[token_index]}, Lexeme: {tokens_list[token_index][1]}')
-        token_index += 1
-    else:
-        syntax_error('Real')
+# removing real for simple rat23f
+# def Real():
+#     global token_index
+#     global tokens_list
+#     if isReal(tokens_list[token_index][1]):
+#         print(f'Matched Token: {tokens_list[token_index]}, Lexeme: {tokens_list[token_index][1]}')
+#         token_index += 1
+#     else:
+#         syntax_error('Real')
     
     
 def Integer():
     global token_index
     global tokens_list
+    global assembly_instructions
+    
     if isInt(tokens_list[token_index][1]):
         print(f'Matched Token: {tokens_list[token_index]}, Lexeme: {tokens_list[token_index][1]}')
+        gen_instr('PUSHI', tokens_list[token_index][1])
         token_index += 1
     else:
         syntax_error('Integer')
@@ -510,14 +653,28 @@ outputFiles = ["output1.txt", "output2.txt", "output3.txt" ]
 for i in range(3):
     with open(testFiles[i], 'a') as f:
         f.write(' ')
+        
 for i in range(3):
-    tokens_list = []
+    tokens_list = [] 
     token_index = 0
     getTokens(testFiles[i], tokens_list)
-    file = open(outputFiles[i], 'w')
-    sys.stdout = file
-    if Rat23F():
-        print('Parsing Complete')
-    else:
-        print('Parsing Failed')
-    file.close
+    
+    if not tokens_list:
+        print(f"No tokens to parse in file {testFiles[i]}")
+        continue
+    
+    with open(outputFiles[i], 'w') as file:
+        original_stdout = sys.stdout
+        sys.stdout = file
+        if Rat23F():
+            print('Parsing Complete')
+            print('\n')
+            print('ASSEMBLY CODE')
+            print_assembly()
+            print('\n')
+            print('SYMBOL TABLE')
+            print_all_identifiers()
+        else:
+            print('Parsing Failed')
+    
+    sys.stdout = original_stdout
