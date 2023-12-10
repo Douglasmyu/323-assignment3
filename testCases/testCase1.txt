@@ -1,6 +1,12 @@
-# 
-integer a, b, result;
-get(a, b);
-result = a + b;
-put(result);
-#                  
+#
+integer i, max, sum; [* declarations *]
+sum = 0;
+i = 1;
+get (max);
+while (i < max) {
+sum = sum + i;
+i = i * 1;
+}
+put (sum + max);
+#
+                    

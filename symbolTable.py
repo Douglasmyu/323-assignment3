@@ -1,20 +1,16 @@
 #global variables
-symbolTable = [[lexeme],[memory_Address]]
+symbol_table = {}
 memory_Address = 7000
 
 #procedures 
 #memory addressing
 def identifiers_exist(identifier):
-    if identifier in symbolTable:
-        return identifier in symbolTable
+    return identifier in symbol_table
  
- 
-#check if identifier exist
-    #if not return error
 def insert_identifiers(lexeme, data_type):
     global memory_Address
     if not identifiers_exist(lexeme):
-        symbolTable[lexeme] = {"memoryLocation": memory_Address, "type": data_type}
+        symbol_table[lexeme] = {"memoryLocation": memory_Address, "type": data_type}
         memory_Address+=1
     else:
         print(f"Error: Identifier '{lexeme}' already declared.")
@@ -22,5 +18,12 @@ def insert_identifiers(lexeme, data_type):
 #print all identifier in the table
 def print_all_identifiers():
     print("Identifier\tMemory Location\tType")
-    for lexeme, data in symbolTable.items():
-        print(f"{lexeme}\t\t{data['MemoryLocation']}\t\t{data['Type']}")
+    for lexeme, data in symbol_table.items():
+        print(f"{lexeme}\t\t{data['memoryLocation']}\t\t{data['type']}")
+
+def get_address(identifier):
+    if identifiers_exist(identifier):
+        return symbol_table[identifier]['memoryLocation']
+    else:
+        print(f"Error: Identifer '{identifier}' not declared.")
+        return
